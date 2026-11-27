@@ -1,5 +1,6 @@
 import { ApiProxy } from '@kinvolk/headlamp-plugin/lib';
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { ResourceError } from '../common/ResourceState';
 
 type OCMContext =
@@ -41,9 +42,19 @@ async function discoverOCM(clusters: string[]): Promise<OCMContext> {
   return { type: 'none' };
 }
 
+/** Detects the OCM role of the selected clusters and retries on navigation if no role was found. */
 export function useOCMContext(clusters: string[]): OCMContext {
+  const { pathname } = useLocation();
   const clusterKey = JSON.stringify(clusters);
+  const [retryPath, setRetryPath] = useState(pathname);
   const [result, setResult] = useState<{ clusterKey: string; context: OCMContext }>();
+  const context: OCMContext =
+    result?.clusterKey === clusterKey ? result.context : { type: 'loading' };
+
+  useEffect(() => {
+    if (context.type === 'error' || context.type === 'none') setRetryPath(pathname);
+  }, [context.type, pathname]);
+
   useEffect(() => {
     let current = true;
     void discoverOCM(JSON.parse(clusterKey)).then(context => {
@@ -52,9 +63,9 @@ export function useOCMContext(clusters: string[]): OCMContext {
     return () => {
       current = false;
     };
-  }, [clusterKey]);
+  }, [clusterKey, retryPath]);
 
-  return result?.clusterKey === clusterKey ? result.context : { type: 'loading' };
+  return context;
 }
 
 export function getConditionStatus(

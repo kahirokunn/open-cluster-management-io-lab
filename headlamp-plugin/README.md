@@ -18,7 +18,9 @@ Headlamp includes the selected cluster in each URL. These examples use a hub con
 | Placements | `/c/fleet-hub/ocm/placements/fleet/observability` | Placement conditions and selected clusters from PlacementDecision |
 | ManifestWork | `/c/fleet-hub/ocm/manifestwork/edge-west/observability` | Target cluster, manifests, and their applied and available conditions |
 | Add-ons | `/c/fleet-hub/ocm/addons/cluster-proxy` | Add-on install strategy and each ManagedClusterAddOn's status |
-| This Cluster | `/c/edge-west/ocm/managed` | Klusterlet, ClusterClaims, applied work, and agent Pods on the selected managed cluster |
+| Agent | `/c/edge-west/ocm/managed` | Klusterlet, ClusterClaims, applied work, and agent Pods on the selected managed cluster |
+
+The OCM menu lists the hub views on a hub and only **Agent** on a managed cluster.
 
 The views are read-only and use Headlamp's Kubernetes resource watches. The **Status** column reports
 ManagedCluster availability as seen by OCM. **Go to cluster** opens the managed cluster in Headlamp,

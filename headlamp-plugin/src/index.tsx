@@ -10,14 +10,10 @@ import ManifestWorkList from './manifestwork/ManifestWorkList';
 import Overview from './overview/Overview';
 import PlacementDetail from './placements/PlacementDetail';
 import PlacementList from './placements/PlacementList';
+import { registerOCMSidebar } from './sidebar';
 
-// Top-level OCM sidebar group
-registerSidebarEntry({
-  parent: null,
-  name: 'ocm',
-  label: 'OCM',
-  icon: 'vaadin:cluster',
-});
+// Top-level OCM sidebar group, which shows the pages for the selected cluster's role
+registerOCMSidebar();
 
 // Overview
 registerSidebarEntry({
@@ -167,11 +163,11 @@ registerRoute({
   ),
 });
 
-// This Cluster (managed/spoke view)
+// The OCM agent on a managed cluster
 registerSidebarEntry({
   parent: 'ocm',
   name: 'ocm-managed',
-  label: 'This Cluster',
+  label: 'Agent',
   url: '/ocm/managed',
 });
 
@@ -181,7 +177,7 @@ registerRoute({
   name: 'ocm-managed',
   exact: true,
   component: () => (
-    <OCMPage clusterRole="managed" title="This Cluster">
+    <OCMPage clusterRole="managed" title="Agent">
       <ManagedOverview />
     </OCMPage>
   ),
