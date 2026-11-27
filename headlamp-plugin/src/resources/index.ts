@@ -1,4 +1,6 @@
-import { KubeObject } from '@kinvolk/headlamp-plugin/lib/k8s/cluster';
+import { K8s } from '@kinvolk/headlamp-plugin/lib';
+
+const { KubeObject } = K8s.cluster;
 
 // --- Hub Operator ---
 
@@ -176,6 +178,7 @@ export class Klusterlet extends KubeObject {
   static apiName = 'klusterlets';
   static apiVersion = 'operator.open-cluster-management.io/v1';
   static isNamespaced = false;
+  static readonly defaultAgentNamespace = 'open-cluster-management-agent';
 
   get deployMode(): string {
     return this.jsonData.spec?.deployOption?.mode ?? 'Default';
@@ -185,8 +188,10 @@ export class Klusterlet extends KubeObject {
     return this.jsonData.spec?.clusterName ?? '';
   }
 
-  get registrationNamespace(): string {
-    return this.jsonData.spec?.namespace ?? 'open-cluster-management-agent';
+  get agentNamespace(): string {
+    const mode = this.deployMode;
+    if (mode === 'Hosted' || mode === 'SingletonHosted') return this.metadata.name;
+    return this.jsonData.spec?.namespace || Klusterlet.defaultAgentNamespace;
   }
 }
 

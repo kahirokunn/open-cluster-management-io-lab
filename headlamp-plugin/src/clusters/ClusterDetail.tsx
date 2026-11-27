@@ -1,55 +1,28 @@
 import {
   ConditionsTable,
+  Loader,
   MainInfoSection,
   SectionBox,
   SimpleTable,
 } from '@kinvolk/headlamp-plugin/lib/components/common';
 import { useParams } from 'react-router-dom';
+import { ResourceErrorNotice } from '../common/ResourceState';
 import StatusLabel, { conditionToStatus } from '../common/StatusLabel';
-import { getConditionStatus, useOCMContext } from '../helpers';
+import { getConditionStatus } from '../helpers';
 import { ManagedCluster } from '../resources';
 
 export default function ClusterDetail() {
   const { name } = useParams<{ name: string }>();
-  const ctx = useOCMContext();
   const [cluster, error] = ManagedCluster.useGet(name!);
 
-  if (ctx.type === 'loading') {
+  if (!cluster || error?.status === 401 || error?.status === 403 || error?.status === 404) {
     return (
       <SectionBox title="Managed Cluster">
-        <p>Loading...</p>
-      </SectionBox>
-    );
-  }
-
-  if (ctx.type === 'managed') {
-    return (
-      <SectionBox title="Managed Cluster">
-        <p>This is a managed cluster. Switch to the hub cluster to see fleet views.</p>
-      </SectionBox>
-    );
-  }
-
-  if (ctx.type === 'none') {
-    return (
-      <SectionBox title="Managed Cluster">
-        <p>Open Cluster Management is not installed on this cluster.</p>
-      </SectionBox>
-    );
-  }
-
-  if (error) {
-    return (
-      <SectionBox title="Managed Cluster">
-        <p>Error loading cluster: {error.toString()}</p>
-      </SectionBox>
-    );
-  }
-
-  if (!cluster) {
-    return (
-      <SectionBox title="Managed Cluster">
-        <p>Loading...</p>
+        {error ? (
+          <ResourceErrorNotice error={error} resource="Managed cluster" />
+        ) : (
+          <Loader title="Loading Managed cluster…" />
+        )}
       </SectionBox>
     );
   }
@@ -62,7 +35,9 @@ export default function ClusterDetail() {
 
   return (
     <>
+      {error && <ResourceErrorNotice error={error} resource="Managed cluster" hasData />}
       <MainInfoSection
+        noDefaultActions
         resource={cluster}
         title="Managed Cluster"
         extraInfo={[

@@ -1,31 +1,60 @@
-import { K8s } from '@kinvolk/headlamp-plugin/lib';
+import { ApiProxy } from '@kinvolk/headlamp-plugin/lib';
+import { useEffect, useState } from 'react';
+import type { ResourceError } from '../common/ResourceState';
 
-export type OCMContext =
+type OCMContext =
   | { type: 'loading' }
   | { type: 'hub' }
   | { type: 'managed' }
-  | { type: 'none' };
+  | { type: 'none' }
+  | { type: 'error'; error: ResourceError };
 
-export function useOCMContext(): OCMContext {
-  const [crds] = K8s.ResourceClasses.CustomResourceDefinition.useList();
-
-  if (!crds) return { type: 'loading' };
-
-  const crdNames = new Set(crds.map((crd: { metadata: { name: string } }) => crd.metadata.name));
-
-  if (crdNames.has('managedclusters.cluster.open-cluster-management.io')) {
-    return { type: 'hub' };
+async function hasResource(cluster: string, apiVersion: string, resource: string) {
+  try {
+    const discovery: { resources: { name: string }[] } = await ApiProxy.clusterRequest(
+      `/apis/${apiVersion}`,
+      { cluster, autoLogoutOnAuthError: false }
+    );
+    return discovery.resources.some(item => item.name === resource);
+  } catch (error) {
+    if ((error as ResourceError).status === 404) return false;
+    throw error;
   }
-  if (crdNames.has('klusterlets.operator.open-cluster-management.io')) {
+}
+
+async function discoverOCM(clusters: string[]): Promise<OCMContext> {
+  const hubs = await Promise.allSettled(
+    clusters.map(cluster =>
+      hasResource(cluster, 'cluster.open-cluster-management.io/v1', 'managedclusters')
+    )
+  );
+  if (hubs.some(result => result.status === 'fulfilled' && result.value)) return { type: 'hub' };
+  const managed = await Promise.allSettled(
+    clusters.map(cluster =>
+      hasResource(cluster, 'operator.open-cluster-management.io/v1', 'klusterlets')
+    )
+  );
+  if (managed.some(result => result.status === 'fulfilled' && result.value))
     return { type: 'managed' };
-  }
+  const failure = [...hubs, ...managed].find(result => result.status === 'rejected');
+  if (failure) return { type: 'error', error: failure.reason };
   return { type: 'none' };
 }
 
-export function useOCMInstalled(): boolean | null {
-  const ctx = useOCMContext();
-  if (ctx.type === 'loading') return null;
-  return ctx.type === 'hub';
+export function useOCMContext(clusters: string[]): OCMContext {
+  const clusterKey = JSON.stringify(clusters);
+  const [result, setResult] = useState<{ clusterKey: string; context: OCMContext }>();
+  useEffect(() => {
+    let current = true;
+    void discoverOCM(JSON.parse(clusterKey)).then(context => {
+      if (current) setResult({ clusterKey, context });
+    });
+    return () => {
+      current = false;
+    };
+  }, [clusterKey]);
+
+  return result?.clusterKey === clusterKey ? result.context : { type: 'loading' };
 }
 
 export function getConditionStatus(

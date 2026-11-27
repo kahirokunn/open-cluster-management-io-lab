@@ -1,74 +1,45 @@
 import {
   ConditionsTable,
   Link,
+  Loader,
   MainInfoSection,
   SectionBox,
   SimpleTable,
 } from '@kinvolk/headlamp-plugin/lib/components/common';
 import { useParams } from 'react-router-dom';
+import { ResourceErrorNotice, ResourceListState } from '../common/ResourceState';
 import StatusLabel, { conditionToStatus } from '../common/StatusLabel';
-import { getConditionStatus, useOCMContext } from '../helpers';
+import { getConditionStatus } from '../helpers';
 import { Placement, PlacementDecision } from '../resources';
 
 export default function PlacementDetail() {
   const { namespace, name } = useParams<{ namespace: string; name: string }>();
-  const ctx = useOCMContext();
   const [placement, error] = Placement.useGet(name!, namespace!);
-  const [decisions] = PlacementDecision.useList({ namespace: namespace! });
+  const decisions = PlacementDecision.useList({
+    clusters: placement ? [placement.cluster] : [],
+    namespace,
+    labelSelector: `cluster.open-cluster-management.io/placement=${name}`,
+  });
 
-  if (ctx.type === 'loading') {
+  if (!placement || error?.status === 401 || error?.status === 403 || error?.status === 404) {
     return (
       <SectionBox title="Placement">
-        <p>Loading...</p>
-      </SectionBox>
-    );
-  }
-
-  if (ctx.type === 'managed') {
-    return (
-      <SectionBox title="Placement">
-        <p>This is a managed cluster. Switch to the hub cluster to see placements.</p>
-      </SectionBox>
-    );
-  }
-
-  if (ctx.type === 'none') {
-    return (
-      <SectionBox title="Placement">
-        <p>Open Cluster Management is not installed on this cluster.</p>
-      </SectionBox>
-    );
-  }
-
-  if (error) {
-    return (
-      <SectionBox title="Placement">
-        <p>Error loading placement: {error.toString()}</p>
-      </SectionBox>
-    );
-  }
-
-  if (!placement) {
-    return (
-      <SectionBox title="Placement">
-        <p>Loading...</p>
+        {error ? (
+          <ResourceErrorNotice error={error} resource="Placement" />
+        ) : (
+          <Loader title="Loading Placement…" />
+        )}
       </SectionBox>
     );
   }
 
   const satisfied = getConditionStatus(placement.jsonData.status?.conditions, 'PlacementSatisfied');
 
-  const placementDecisions = decisions?.filter(
-    (d: InstanceType<typeof PlacementDecision>) =>
-      d.jsonData.metadata?.labels?.['cluster.open-cluster-management.io/placement'] === name
-  );
-
-  const selectedClusters =
-    placementDecisions?.flatMap((d: InstanceType<typeof PlacementDecision>) => d.decisions) ?? [];
-
   return (
     <>
+      {error && <ResourceErrorNotice error={error} resource="Placement" hasData />}
       <MainInfoSection
+        noDefaultActions
         resource={placement}
         title="Placement"
         extraInfo={[
@@ -104,27 +75,37 @@ export default function PlacementDetail() {
       />
 
       <SectionBox title="Selected Clusters">
-        {selectedClusters.length > 0 ? (
-          <SimpleTable
-            data={selectedClusters}
-            columns={[
-              {
-                label: 'Cluster',
-                getter: (row: { clusterName: string }) => (
-                  <Link routeName="ocm-cluster-detail" params={{ name: row.clusterName }}>
-                    {row.clusterName}
-                  </Link>
-                ),
-              },
-              {
-                label: 'Reason',
-                getter: (row: { reason: string }) => row.reason || '-',
-              },
-            ]}
-          />
-        ) : (
-          <p>No clusters selected.</p>
-        )}
+        <ResourceListState
+          result={{
+            ...decisions,
+            items: decisions.items?.flatMap(decision => decision.decisions) ?? null,
+          }}
+          resource="placement decisions"
+          empty="No clusters selected."
+        >
+          {selectedClusters => (
+            <SimpleTable
+              data={selectedClusters}
+              columns={[
+                {
+                  label: 'Cluster',
+                  getter: (row: { clusterName: string }) => (
+                    <Link
+                      routeName="ocm-cluster-detail"
+                      params={{ name: row.clusterName, cluster: placement.cluster }}
+                    >
+                      {row.clusterName}
+                    </Link>
+                  ),
+                },
+                {
+                  label: 'Reason',
+                  getter: (row: { reason: string }) => row.reason || '-',
+                },
+              ]}
+            />
+          )}
+        </ResourceListState>
       </SectionBox>
 
       <SectionBox title="Conditions">
