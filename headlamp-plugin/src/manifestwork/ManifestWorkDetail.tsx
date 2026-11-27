@@ -12,6 +12,7 @@ import StatusLabel, { conditionToStatus } from '../common/StatusLabel';
 import { getConditionStatus } from '../helpers';
 import { ManifestWork } from '../resources';
 import ManifestsSection from './ManifestsSection';
+import WorkSource from './WorkSource';
 
 export default function ManifestWorkDetail() {
   const { namespace, name } = useParams<{ namespace: string; name: string }>();
@@ -60,17 +61,7 @@ export default function ManifestWorkDetail() {
         extraInfo={[
           {
             name: 'Source',
-            value: (() => {
-              const replicaSet =
-                work.jsonData.metadata?.labels?.[
-                  'work.open-cluster-management.io/manifestworkreplicaset'
-                ];
-              return replicaSet ? (
-                <StatusLabel status="success">ReplicaSet ({replicaSet})</StatusLabel>
-              ) : (
-                <StatusLabel status="unknown">Manual</StatusLabel>
-              );
-            })(),
+            value: <WorkSource work={work} />,
           },
           {
             name: 'Target Cluster',

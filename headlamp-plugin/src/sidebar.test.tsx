@@ -40,6 +40,7 @@ const pages = [
   'ocm-clusters',
   'ocm-placements',
   'ocm-manifestwork',
+  'ocm-manifestworkreplicasets',
   'ocm-addons',
   'ocm-managed',
   'workloads',
@@ -97,6 +98,7 @@ describe('OCM sidebar', () => {
         'ocm-clusters',
         'ocm-placements',
         'ocm-manifestwork',
+        'ocm-manifestworkreplicasets',
         'ocm-addons',
         'workloads',
       ])

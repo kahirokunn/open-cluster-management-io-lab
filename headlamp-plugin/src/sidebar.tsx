@@ -16,6 +16,7 @@ const hubPages = [
   'ocm-clusters',
   'ocm-placements',
   'ocm-manifestwork',
+  'ocm-manifestworkreplicasets',
   'ocm-addons',
 ];
 /** The page about the OCM agent on a managed cluster. */

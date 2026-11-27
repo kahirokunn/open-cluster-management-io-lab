@@ -7,6 +7,8 @@ import OCMPage from './common/OCMPage';
 import ManagedOverview from './managed/ManagedOverview';
 import ManifestWorkDetail from './manifestwork/ManifestWorkDetail';
 import ManifestWorkList from './manifestwork/ManifestWorkList';
+import ManifestWorkReplicaSetDetail from './manifestworkreplicaset/ManifestWorkReplicaSetDetail';
+import ManifestWorkReplicaSetList from './manifestworkreplicaset/ManifestWorkReplicaSetList';
 import Overview from './overview/Overview';
 import PlacementDetail from './placements/PlacementDetail';
 import PlacementList from './placements/PlacementList';
@@ -127,6 +129,38 @@ registerRoute({
   component: () => (
     <OCMPage clusterRole="hub" title="ManifestWork">
       <ManifestWorkDetail />
+    </OCMPage>
+  ),
+});
+
+// ManifestWorkReplicaSets
+registerSidebarEntry({
+  parent: 'ocm',
+  name: 'ocm-manifestworkreplicasets',
+  label: 'ManifestWorkReplicaSets',
+  url: '/ocm/manifestworkreplicasets',
+});
+
+registerRoute({
+  path: '/ocm/manifestworkreplicasets',
+  sidebar: 'ocm-manifestworkreplicasets',
+  name: 'ocm-manifestworkreplicasets',
+  exact: true,
+  component: () => (
+    <OCMPage clusterRole="hub" title="ManifestWorkReplicaSets">
+      <ManifestWorkReplicaSetList />
+    </OCMPage>
+  ),
+});
+
+registerRoute({
+  path: '/ocm/manifestworkreplicasets/:namespace/:name',
+  sidebar: 'ocm-manifestworkreplicasets',
+  name: 'ocm-manifestworkreplicaset-detail',
+  exact: true,
+  component: () => (
+    <OCMPage clusterRole="hub" title="ManifestWorkReplicaSet">
+      <ManifestWorkReplicaSetDetail />
     </OCMPage>
   ),
 });

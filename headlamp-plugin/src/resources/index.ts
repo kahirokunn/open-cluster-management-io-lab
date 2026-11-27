@@ -174,6 +174,40 @@ export interface Manifest {
   metadata: { name: string; namespace?: string };
 }
 
+/** Totals of the ManifestWorks a ManifestWorkReplicaSet created. */
+export interface ReplicaSetSummary {
+  total?: number;
+  applied?: number;
+  available?: number;
+}
+
+export class ManifestWorkReplicaSet extends KubeObject {
+  static kind = 'ManifestWorkReplicaSet';
+  static apiName = 'manifestworkreplicasets';
+  static apiVersion = 'work.open-cluster-management.io/v1alpha1';
+  static isNamespaced = true;
+
+  get placementRefs(): Array<{ name: string; rolloutStrategy?: { type?: string } }> {
+    return this.jsonData.spec?.placementRefs ?? [];
+  }
+
+  get manifests(): Manifest[] {
+    return this.jsonData.spec?.manifestWorkTemplate?.workload?.manifests ?? [];
+  }
+
+  get summary(): ReplicaSetSummary {
+    return this.jsonData.status?.summary ?? {};
+  }
+
+  get placementSummaries(): Array<{
+    name: string;
+    availableDecisionGroups?: string;
+    summary?: ReplicaSetSummary;
+  }> {
+    return this.jsonData.status?.placementSummary ?? [];
+  }
+}
+
 // --- Managed Cluster (Spoke) Resources ---
 
 export class Klusterlet extends KubeObject {

@@ -17,10 +17,16 @@ Headlamp includes the selected cluster in each URL. These examples use a hub con
 | ManagedCluster | `/c/fleet-hub/ocm/clusters/edge-west` | Cluster conditions, capacity, claims, and taints, with **Go to cluster** when Headlamp discovered the cluster |
 | Placements | `/c/fleet-hub/ocm/placements/fleet/observability` | Placement conditions and selected clusters from PlacementDecision |
 | ManifestWork | `/c/fleet-hub/ocm/manifestwork/edge-west/observability` | Target cluster, manifests with each one's YAML, and their applied and available conditions |
+| ManifestWorkReplicaSet | `/c/fleet-hub/ocm/manifestworkreplicasets/fleet/observability` | Placements and their rollout, the manifest template, and the ManifestWork created on each cluster |
 | Add-ons | `/c/fleet-hub/ocm/addons/cluster-proxy` | Add-on install strategy and each ManagedClusterAddOn's status |
 | Agent | `/c/edge-west/ocm/managed` | Klusterlet, ClusterClaims, applied work, and agent Pods on the selected managed cluster |
 
 The OCM menu lists the hub views on a hub and only **Agent** on a managed cluster.
+
+A ManifestWorkReplicaSet finds its ManifestWorks by their
+`work.open-cluster-management.io/manifestworkreplicaset` label. OCM 1.4 and later leave that label
+off when the ReplicaSet's namespace and name together are longer than 62 characters, so the view
+cannot list those ManifestWorks.
 
 The views are read-only and use Headlamp's Kubernetes resource watches. The **Status** column reports
 ManagedCluster availability as seen by OCM. **Go to cluster** opens the managed cluster in Headlamp,
@@ -32,7 +38,7 @@ namespace and access provider.
 
 | Reader | API and required access |
 | --- | --- |
-| Hub user | `get`, `list`, and `watch` on the OCM resources used by each view. ManagedCluster and ManifestWork use `v1`. Placement, PlacementDecision, and the add-on APIs use `v1beta1`. |
+| Hub user | `get`, `list`, and `watch` on the OCM resources used by each view. ManagedCluster and ManifestWork use `v1`. Placement, PlacementDecision, and the add-on APIs use `v1beta1`. ManifestWorkReplicaSet uses `v1alpha1`. |
 | Headlamp discovery and Hub user | `list` and `watch` on the Hub's `multicluster.x-k8s.io/v1alpha1` ClusterProfiles in the namespaces used for discovery. |
 
 The plugin requires a Headlamp frontend and backend with the live registration API from

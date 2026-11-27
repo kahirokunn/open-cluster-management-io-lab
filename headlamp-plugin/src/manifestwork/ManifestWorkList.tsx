@@ -2,14 +2,28 @@ import { Link, SectionBox, SimpleTable } from '@kinvolk/headlamp-plugin/lib/comp
 import { ResourceListState } from '../common/ResourceState';
 import StatusLabel, { conditionToStatus } from '../common/StatusLabel';
 import { getConditionStatus } from '../helpers';
-import { ManifestWork } from '../resources';
+import { replicaSetLabel } from '../manifestworkreplicaset/owner';
+import { ManifestWork, ManifestWorkReplicaSet } from '../resources';
+import WorkSource from './WorkSource';
 
-export default function ManifestWorkList() {
-  const result = ManifestWork.useList();
+/**
+ * Lists ManifestWorks: all of them, or only those a ManifestWorkReplicaSet created.
+ */
+export default function ManifestWorkList({ replicaSet }: { replicaSet?: ManifestWorkReplicaSet }) {
+  const result = ManifestWork.useList(
+    replicaSet && {
+      clusters: [replicaSet.cluster],
+      labelSelector: `${replicaSetLabel}=${replicaSet.metadata.namespace}.${replicaSet.metadata.name}`,
+    }
+  );
 
   return (
     <SectionBox title="ManifestWorks">
-      <ResourceListState result={result} resource="manifest works" empty="No manifest works found.">
+      <ResourceListState
+        result={result}
+        resource="manifest works"
+        empty={replicaSet ? 'No manifest works created yet.' : 'No manifest works found.'}
+      >
         {items => (
           <SimpleTable
             data={items}
@@ -41,20 +55,14 @@ export default function ManifestWorkList() {
                   </Link>
                 ),
               },
-              {
-                label: 'Source',
-                getter: (w: InstanceType<typeof ManifestWork>) => {
-                  const replicaSet =
-                    w.jsonData.metadata?.labels?.[
-                      'work.open-cluster-management.io/manifestworkreplicaset'
-                    ];
-                  return replicaSet ? (
-                    <StatusLabel status="success">ReplicaSet</StatusLabel>
-                  ) : (
-                    <StatusLabel status="unknown">Manual</StatusLabel>
-                  );
-                },
-              },
+              ...(replicaSet
+                ? []
+                : [
+                    {
+                      label: 'Source',
+                      getter: (w: InstanceType<typeof ManifestWork>) => <WorkSource work={w} />,
+                    },
+                  ]),
               {
                 label: 'Manifests',
                 getter: (w: InstanceType<typeof ManifestWork>) => w.manifestCount.toString(),
