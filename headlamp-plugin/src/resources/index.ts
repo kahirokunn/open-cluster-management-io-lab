@@ -162,13 +162,16 @@ export class ManifestWork extends KubeObject {
     return this.jsonData.spec?.workload?.manifests?.length ?? 0;
   }
 
-  get manifests(): Array<{
-    apiVersion: string;
-    kind: string;
-    metadata: { name: string; namespace?: string };
-  }> {
+  get manifests(): Manifest[] {
     return this.jsonData.spec?.workload?.manifests ?? [];
   }
+}
+
+/** A Kubernetes object that a ManifestWork applies to its cluster. */
+export interface Manifest {
+  apiVersion: string;
+  kind: string;
+  metadata: { name: string; namespace?: string };
 }
 
 // --- Managed Cluster (Spoke) Resources ---

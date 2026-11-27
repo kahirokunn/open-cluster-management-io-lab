@@ -11,6 +11,7 @@ import { ResourceErrorNotice } from '../common/ResourceState';
 import StatusLabel, { conditionToStatus } from '../common/StatusLabel';
 import { getConditionStatus } from '../helpers';
 import { ManifestWork } from '../resources';
+import ManifestsSection from './ManifestsSection';
 
 export default function ManifestWorkDetail() {
   const { namespace, name } = useParams<{ namespace: string; name: string }>();
@@ -113,29 +114,7 @@ export default function ManifestWorkDetail() {
         ]}
       />
 
-      <SectionBox title="Manifests">
-        <SimpleTable
-          data={work.manifests}
-          columns={[
-            {
-              label: 'Kind',
-              getter: (m: { kind: string }) => m.kind,
-            },
-            {
-              label: 'Name',
-              getter: (m: { metadata: { name: string } }) => m.metadata.name,
-            },
-            {
-              label: 'Namespace',
-              getter: (m: { metadata: { namespace?: string } }) => m.metadata.namespace || '-',
-            },
-            {
-              label: 'API Version',
-              getter: (m: { apiVersion: string }) => m.apiVersion,
-            },
-          ]}
-        />
-      </SectionBox>
+      <ManifestsSection owner={work} manifests={work.manifests} />
 
       {resourceStatuses.length > 0 && (
         <SectionBox title="Resource Status">
