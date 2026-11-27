@@ -10,6 +10,7 @@ import { ResourceErrorNotice } from '../common/ResourceState';
 import StatusLabel, { conditionToStatus } from '../common/StatusLabel';
 import { getConditionStatus } from '../helpers';
 import { ManagedCluster } from '../resources';
+import GoToCluster from './GoToCluster';
 
 export default function ClusterDetail() {
   const { name } = useParams<{ name: string }>();
@@ -40,6 +41,13 @@ export default function ClusterDetail() {
         noDefaultActions
         resource={cluster}
         title="Managed Cluster"
+        actions={[
+          <GoToCluster
+            key="go-to-cluster"
+            hub={cluster.cluster}
+            clusterName={cluster.metadata.name}
+          />,
+        ]}
         extraInfo={[
           {
             name: 'Status',
