@@ -146,7 +146,7 @@ export default function ManifestWorkDetail() {
       )}
 
       <SectionBox title="Conditions">
-        <ConditionsTable resource={work} />
+        <ConditionsTable resource={work.jsonData} />
       </SectionBox>
     </>
   );

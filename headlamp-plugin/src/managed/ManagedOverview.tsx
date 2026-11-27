@@ -10,6 +10,41 @@ import { getConditionStatus } from '../helpers';
 import { AppliedManifestWork, ClusterClaim, Klusterlet } from '../resources';
 import AgentPods from './AgentPods';
 
+function KlusterletInfo({ klusterlet }: { klusterlet: Klusterlet }) {
+  const available = getConditionStatus(klusterlet.jsonData.status?.conditions, 'Available');
+  return (
+    <div>
+      <h3>
+        {klusterlet.cluster} / {klusterlet.metadata.name}
+      </h3>
+      <SimpleTable
+        data={[
+          { label: 'Cluster Name', value: klusterlet.clusterName || '-' },
+          { label: 'Deploy Mode', value: klusterlet.deployMode },
+          { label: 'Agent Namespace', value: klusterlet.agentNamespace },
+          {
+            label: 'Status',
+            value: (
+              <StatusLabel status={conditionToStatus(available?.status)}>
+                {available?.status === 'True'
+                  ? 'Available'
+                  : available?.status === 'False'
+                  ? 'Unavailable'
+                  : 'Unknown'}
+              </StatusLabel>
+            ),
+          },
+        ]}
+        columns={[
+          { label: 'Field', getter: (row: { label: string }) => row.label },
+          { label: 'Value', getter: row => row.value },
+        ]}
+      />
+      <ConditionsTable resource={klusterlet.jsonData} />
+    </div>
+  );
+}
+
 export default function ManagedOverview() {
   const clusters = K8s.useSelectedClusters();
   const klusterlets = Klusterlet.useList();
@@ -18,46 +53,20 @@ export default function ManagedOverview() {
 
   return (
     <>
-      <SectionBox title="Klusterlet">
+      <SectionBox title="Klusterlets">
         <ResourceListState
           result={klusterlets}
           resource="klusterlets"
           empty="No klusterlets found."
         >
-          {([klusterlet]) => {
-            const available = getConditionStatus(
-              klusterlet.jsonData.status?.conditions,
-              'Available'
-            );
-            return (
-              <>
-                <SimpleTable
-                  data={[
-                    { label: 'Cluster Name', value: klusterlet.clusterName || '-' },
-                    { label: 'Deploy Mode', value: klusterlet.deployMode },
-                    { label: 'Agent Namespace', value: klusterlet.agentNamespace },
-                    {
-                      label: 'Status',
-                      value: (
-                        <StatusLabel status={conditionToStatus(available?.status)}>
-                          {available?.status === 'True'
-                            ? 'Available'
-                            : available?.status === 'False'
-                            ? 'Unavailable'
-                            : 'Unknown'}
-                        </StatusLabel>
-                      ),
-                    },
-                  ]}
-                  columns={[
-                    { label: 'Field', getter: (row: { label: string }) => row.label },
-                    { label: 'Value', getter: row => row.value },
-                  ]}
-                />
-                <ConditionsTable resource={klusterlet} />
-              </>
-            );
-          }}
+          {items =>
+            items.map(klusterlet => (
+              <KlusterletInfo
+                key={JSON.stringify([klusterlet.cluster, klusterlet.metadata.name])}
+                klusterlet={klusterlet}
+              />
+            ))
+          }
         </ResourceListState>
       </SectionBox>
 

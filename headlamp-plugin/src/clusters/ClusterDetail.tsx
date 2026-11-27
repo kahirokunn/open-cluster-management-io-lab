@@ -136,7 +136,7 @@ export default function ClusterDetail() {
       )}
 
       <SectionBox title="Conditions">
-        <ConditionsTable resource={cluster} />
+        <ConditionsTable resource={cluster.jsonData} />
       </SectionBox>
     </>
   );

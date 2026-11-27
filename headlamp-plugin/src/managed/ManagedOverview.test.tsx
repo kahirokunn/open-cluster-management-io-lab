@@ -13,7 +13,7 @@ vi.mock('@kinvolk/headlamp-plugin/lib', () => ({
   K8s: {
     cluster: {
       KubeObject: class {
-        constructor(public jsonData: { metadata: { name: string } }) {}
+        constructor(public jsonData: { metadata: { name: string } }, public cluster?: string) {}
 
         get metadata() {
           return this.jsonData.metadata;
@@ -26,12 +26,25 @@ vi.mock('@kinvolk/headlamp-plugin/lib', () => ({
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/components/common', () => ({
-  ConditionsTable: () => null,
+  ConditionsTable: ({ resource }: { resource: { metadata: { name: string } } }) => (
+    <p>Conditions for {resource.metadata.name}</p>
+  ),
   Loader: ({ title }: { title: string }) => <p>{title}</p>,
   SectionBox: ({ children }: { children: ReactNode }) => <section>{children}</section>,
-  SimpleTable: ({ data }: { data: { metadata?: { name: string } }[] }) => (
-    <p>{data.map(row => row.metadata?.name).join(', ')}</p>
-  ),
+  SimpleTable: ({
+    data,
+  }: {
+    data: { metadata?: { name: string }; label?: string; value?: ReactNode }[];
+  }) =>
+    data[0]?.label ? (
+      <div>
+        {data.map(row => (
+          <p key={row.label}>{row.value}</p>
+        ))}
+      </div>
+    ) : (
+      <p>{data.map(row => row.metadata?.name).join(', ')}</p>
+    ),
 }));
 
 vi.mock('../resources', async importOriginal => {
@@ -50,8 +63,11 @@ const assignedNamespaces: Record<string, string> = {
   'edge-west': 'west-agents',
 };
 
-function klusterlet(name: string, namespace: string, mode = 'Default') {
-  return new Klusterlet({ metadata: { name }, spec: { namespace, deployOption: { mode } } });
+function klusterlet(name: string, namespace: string, mode = 'Default', cluster = name) {
+  return new Klusterlet(
+    { metadata: { name }, spec: { namespace, deployOption: { mode } } },
+    cluster
+  );
 }
 
 beforeEach(() => {
@@ -77,6 +93,31 @@ beforeEach(() => {
 });
 
 afterEach(cleanup);
+
+it('renders the configuration and conditions for every Klusterlet', () => {
+  const klusterlets = [
+    klusterlet('klusterlet', 'east-agents', 'Hosted', 'edge-east'),
+    klusterlet('hosted-singleton', 'east-agents', 'SingletonHosted', 'edge-east'),
+    klusterlet('klusterlet', 'west-agents', 'Default', 'edge-west'),
+  ];
+  listKlusterlets.mockImplementation((options?: { cluster: string }) => ({
+    items: options
+      ? klusterlets.filter(klusterlet => klusterlet.cluster === options.cluster)
+      : klusterlets,
+    error: null,
+  }));
+  listPods.mockReturnValue({ items: [], error: null });
+
+  render(<ManagedOverview />);
+
+  expect(screen.getByRole('heading', { name: 'edge-east / klusterlet' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'edge-east / hosted-singleton' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'edge-west / klusterlet' })).toBeTruthy();
+  expect(screen.getByText('SingletonHosted')).toBeTruthy();
+  expect(screen.getByText('west-agents')).toBeTruthy();
+  expect(screen.getAllByText('Conditions for klusterlet')).toHaveLength(2);
+  expect(screen.getByText('Conditions for hosted-singleton')).toBeTruthy();
+});
 
 describe('Agent Pods', () => {
   it('queries only the permitted agent namespace on each selected cluster', () => {

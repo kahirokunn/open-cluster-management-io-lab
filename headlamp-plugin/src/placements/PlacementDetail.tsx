@@ -109,7 +109,7 @@ export default function PlacementDetail() {
       </SectionBox>
 
       <SectionBox title="Conditions">
-        <ConditionsTable resource={placement} />
+        <ConditionsTable resource={placement.jsonData} />
       </SectionBox>
     </>
   );

@@ -14,6 +14,7 @@ vi.mock('../resources', () => {
     cluster: 'hub',
     metadata: { name: 'cluster-proxy' },
     displayName: 'Cluster Proxy',
+    jsonData: { metadata: { name: 'cluster-proxy' } },
   };
   return {
     ClusterManagementAddOn: {
@@ -25,7 +26,9 @@ vi.mock('../resources', () => {
 });
 
 vi.mock('@kinvolk/headlamp-plugin/lib/components/common', () => ({
-  ConditionsTable: () => null,
+  ConditionsTable: ({ resource }: { resource: { metadata: { name: string } } }) => (
+    <p>Conditions for {resource.metadata.name}</p>
+  ),
   Link: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   Loader: () => null,
   MainInfoSection: ({ extraInfo }: { extraInfo: { name: string; value: ReactNode }[] }) => (
@@ -45,7 +48,7 @@ vi.mock('@kinvolk/headlamp-plugin/lib/components/common', () => ({
 
 afterEach(cleanup);
 
-describe('Add-on installation counts', () => {
+describe('Add-on views', () => {
   it.each([
     { View: AddOnList, empty: '0 / 0 available' },
     { View: AddOnDetail, empty: '0' },
@@ -60,5 +63,28 @@ describe('Add-on installation counts', () => {
     view.rerender(<View />);
 
     expect(screen.getByText(empty)).toBeTruthy();
+  });
+
+  it('keeps conditions for readable installations on a partial 404 and hides them on 401', () => {
+    const installation = {
+      metadata: { name: 'cluster-proxy', namespace: 'edge-east' },
+      jsonData: { metadata: { name: 'installation on edge-east' } },
+    };
+    listInstallations.mockReturnValue({
+      items: [installation],
+      error: { status: 404, message: 'One namespace could not be found.' },
+    });
+    const view = render(<AddOnDetail />);
+
+    expect(screen.getByText('Conditions for installation on edge-east')).toBeTruthy();
+
+    listInstallations.mockReturnValue({
+      items: [installation],
+      error: { status: 401, message: 'Unauthorized' },
+    });
+    view.rerender(<AddOnDetail />);
+
+    expect(screen.queryByText('Conditions for installation on edge-east')).toBeNull();
+    expect(screen.getByText('Conditions for cluster-proxy')).toBeTruthy();
   });
 });

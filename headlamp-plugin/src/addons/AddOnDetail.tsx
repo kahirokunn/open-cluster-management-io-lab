@@ -136,13 +136,12 @@ export default function AddOnDetail() {
       </SectionBox>
 
       <SectionBox title="Conditions">
-        <ConditionsTable resource={addon} />
+        <ConditionsTable resource={addon.jsonData} />
         {clusterAddons.error?.status !== 401 &&
-          clusterAddons.error?.status !== 404 &&
           clusterAddons.items?.map(ca => (
             <div key={ca.metadata.uid ?? ca.metadata.namespace}>
               <h4>{ca.metadata.namespace}</h4>
-              <ConditionsTable resource={ca} />
+              <ConditionsTable resource={ca.jsonData} />
             </div>
           ))}
       </SectionBox>
