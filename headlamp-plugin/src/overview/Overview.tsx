@@ -1,17 +1,45 @@
-import {
-  PercentageCircle,
-  SectionBox,
-  SimpleTable,
-} from '@kinvolk/headlamp-plugin/lib/components/common';
-import { Box, Typography } from '@mui/material';
+import { SectionBox, SimpleTable, TileChart } from '@kinvolk/headlamp-plugin/lib/components/common';
+import { Box, useTheme } from '@mui/material';
 import AddOnList from '../addons/AddOnList';
 import { ClusterTable } from '../clusters/ClusterTable';
-import { ResourceErrorNotice } from '../common/ResourceState';
+import { isResourceListLoading, ResourceErrorNotice } from '../common/ResourceState';
 import StatusLabel from '../common/StatusLabel';
 import { getConditionStatus } from '../helpers';
 import ManifestWorkList from '../manifestwork/ManifestWorkList';
 import PlacementList from '../placements/PlacementList';
 import { ClusterManager, ManagedCluster } from '../resources';
+
+/** A Headlamp overview tile with a count of clusters in one state out of all clusters. */
+function ClusterStateTile({
+  title,
+  total,
+  good,
+  bad,
+  goodLabel,
+  badLabel,
+}: {
+  title: string;
+  total: number;
+  good: number;
+  bad: number;
+  goodLabel: string;
+  badLabel: string;
+}) {
+  const theme = useTheme();
+  return (
+    <TileChart
+      title={title}
+      total={total}
+      label={`${good} / ${total}`}
+      legend={`${good} ${goodLabel}${bad ? `, ${bad} ${badLabel}` : ''}`}
+      data={[
+        { name: goodLabel, value: good, fill: theme.palette.success.main },
+        { name: badLabel, value: bad, fill: theme.palette.error.main },
+        { name: 'unknown', value: total - good - bad, fill: theme.palette.grey[500] },
+      ]}
+    />
+  );
+}
 
 export default function Overview() {
   const clusterResult = ManagedCluster.useList();
@@ -20,6 +48,9 @@ export default function Overview() {
   const featureGates = clusterManagers.items?.[0]?.featureGates ?? [];
 
   const total = clusters?.length ?? 0;
+  const showFleetTiles =
+    clusterResult.error?.status !== 401 &&
+    (total > 0 || (!clusterResult.error && !isResourceListLoading(clusterResult)));
 
   let availableCount = 0;
   let unavailableCount = 0;
@@ -42,39 +73,29 @@ export default function Overview() {
 
   return (
     <>
-      {clusters && clusterResult.error?.status !== 401 && clusterResult.error?.status !== 404 && (
+      {showFleetTiles && (
         <SectionBox title="Fleet Overview">
-          <Box sx={{ display: 'flex', gap: 4, justifyContent: 'space-around', py: 2 }}>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h3">{total}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total Clusters
-              </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <Box sx={{ width: 300 }}>
+              <ClusterStateTile
+                title="Availability"
+                total={total}
+                good={availableCount}
+                bad={unavailableCount}
+                goodLabel="available"
+                badLabel="unavailable"
+              />
             </Box>
-            <PercentageCircle
-              title="Availability"
-              size={140}
-              total={total}
-              data={[
-                { name: 'Available', value: availableCount, fill: '#1b7a3d' },
-                { name: 'Unavailable', value: unavailableCount, fill: '#c5221f' },
-                {
-                  name: 'Unknown',
-                  value: total - availableCount - unavailableCount,
-                  fill: '#5f6368',
-                },
-              ]}
-            />
-            <PercentageCircle
-              title="Join Status"
-              size={140}
-              total={total}
-              data={[
-                { name: 'Joined', value: joinedCount, fill: '#1b7a3d' },
-                { name: 'Not Joined', value: notJoinedCount, fill: '#c5221f' },
-                { name: 'Unknown', value: total - joinedCount - notJoinedCount, fill: '#5f6368' },
-              ]}
-            />
+            <Box sx={{ width: 300 }}>
+              <ClusterStateTile
+                title="Join Status"
+                total={total}
+                good={joinedCount}
+                bad={notJoinedCount}
+                goodLabel="joined"
+                badLabel="not joined"
+              />
+            </Box>
           </Box>
         </SectionBox>
       )}
