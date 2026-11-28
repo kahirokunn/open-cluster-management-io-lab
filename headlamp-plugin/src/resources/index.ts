@@ -1,4 +1,6 @@
-import { KubeObject } from '@kinvolk/headlamp-plugin/lib/k8s/cluster';
+import { K8s } from '@kinvolk/headlamp-plugin/lib';
+
+const { KubeObject } = K8s.cluster;
 
 // --- Hub Operator ---
 
@@ -160,12 +162,49 @@ export class ManifestWork extends KubeObject {
     return this.jsonData.spec?.workload?.manifests?.length ?? 0;
   }
 
-  get manifests(): Array<{
-    apiVersion: string;
-    kind: string;
-    metadata: { name: string; namespace?: string };
-  }> {
+  get manifests(): Manifest[] {
     return this.jsonData.spec?.workload?.manifests ?? [];
+  }
+}
+
+/** A Kubernetes object that a ManifestWork applies to its cluster. */
+export interface Manifest {
+  apiVersion: string;
+  kind: string;
+  metadata: { name: string; namespace?: string };
+}
+
+/** Totals of the ManifestWorks a ManifestWorkReplicaSet created. */
+export interface ReplicaSetSummary {
+  total?: number;
+  applied?: number;
+  available?: number;
+}
+
+export class ManifestWorkReplicaSet extends KubeObject {
+  static kind = 'ManifestWorkReplicaSet';
+  static apiName = 'manifestworkreplicasets';
+  static apiVersion = 'work.open-cluster-management.io/v1alpha1';
+  static isNamespaced = true;
+
+  get placementRefs(): Array<{ name: string; rolloutStrategy?: { type?: string } }> {
+    return this.jsonData.spec?.placementRefs ?? [];
+  }
+
+  get manifests(): Manifest[] {
+    return this.jsonData.spec?.manifestWorkTemplate?.workload?.manifests ?? [];
+  }
+
+  get summary(): ReplicaSetSummary {
+    return this.jsonData.status?.summary ?? {};
+  }
+
+  get placementSummaries(): Array<{
+    name: string;
+    availableDecisionGroups?: string;
+    summary?: ReplicaSetSummary;
+  }> {
+    return this.jsonData.status?.placementSummary ?? [];
   }
 }
 
@@ -176,6 +215,7 @@ export class Klusterlet extends KubeObject {
   static apiName = 'klusterlets';
   static apiVersion = 'operator.open-cluster-management.io/v1';
   static isNamespaced = false;
+  static readonly defaultAgentNamespace = 'open-cluster-management-agent';
 
   get deployMode(): string {
     return this.jsonData.spec?.deployOption?.mode ?? 'Default';
@@ -185,8 +225,10 @@ export class Klusterlet extends KubeObject {
     return this.jsonData.spec?.clusterName ?? '';
   }
 
-  get registrationNamespace(): string {
-    return this.jsonData.spec?.namespace ?? 'open-cluster-management-agent';
+  get agentNamespace(): string {
+    const mode = this.deployMode;
+    if (mode === 'Hosted' || mode === 'SingletonHosted') return this.metadata.name;
+    return this.jsonData.spec?.namespace || Klusterlet.defaultAgentNamespace;
   }
 }
 

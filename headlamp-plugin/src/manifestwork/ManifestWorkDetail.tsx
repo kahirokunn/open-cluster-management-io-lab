@@ -1,56 +1,31 @@
 import {
   ConditionsTable,
   Link,
+  Loader,
   MainInfoSection,
   SectionBox,
   SimpleTable,
 } from '@kinvolk/headlamp-plugin/lib/components/common';
 import { useParams } from 'react-router-dom';
+import { ResourceErrorNotice } from '../common/ResourceState';
 import StatusLabel, { conditionToStatus } from '../common/StatusLabel';
-import { getConditionStatus, useOCMContext } from '../helpers';
+import { getConditionStatus } from '../helpers';
 import { ManifestWork } from '../resources';
+import ManifestsSection from './ManifestsSection';
+import WorkSource from './WorkSource';
 
 export default function ManifestWorkDetail() {
   const { namespace, name } = useParams<{ namespace: string; name: string }>();
-  const ctx = useOCMContext();
   const [work, error] = ManifestWork.useGet(name!, namespace!);
 
-  if (ctx.type === 'loading') {
+  if (!work || error?.status === 401 || error?.status === 403 || error?.status === 404) {
     return (
       <SectionBox title="ManifestWork">
-        <p>Loading...</p>
-      </SectionBox>
-    );
-  }
-
-  if (ctx.type === 'managed') {
-    return (
-      <SectionBox title="ManifestWork">
-        <p>This is a managed cluster. Switch to the hub cluster to see manifest works.</p>
-      </SectionBox>
-    );
-  }
-
-  if (ctx.type === 'none') {
-    return (
-      <SectionBox title="ManifestWork">
-        <p>Open Cluster Management is not installed on this cluster.</p>
-      </SectionBox>
-    );
-  }
-
-  if (error) {
-    return (
-      <SectionBox title="ManifestWork">
-        <p>Error loading manifest work: {error.toString()}</p>
-      </SectionBox>
-    );
-  }
-
-  if (!work) {
-    return (
-      <SectionBox title="ManifestWork">
-        <p>Loading...</p>
+        {error ? (
+          <ResourceErrorNotice error={error} resource="ManifestWork" />
+        ) : (
+          <Loader title="Loading ManifestWork…" />
+        )}
       </SectionBox>
     );
   }
@@ -78,28 +53,23 @@ export default function ManifestWorkDetail() {
 
   return (
     <>
+      {error && <ResourceErrorNotice error={error} resource="ManifestWork" hasData />}
       <MainInfoSection
+        noDefaultActions
         resource={work}
         title="ManifestWork"
         extraInfo={[
           {
             name: 'Source',
-            value: (() => {
-              const replicaSet =
-                work.jsonData.metadata?.labels?.[
-                  'work.open-cluster-management.io/manifestworkreplicaset'
-                ];
-              return replicaSet ? (
-                <StatusLabel status="success">ReplicaSet ({replicaSet})</StatusLabel>
-              ) : (
-                <StatusLabel status="unknown">Manual</StatusLabel>
-              );
-            })(),
+            value: <WorkSource work={work} />,
           },
           {
             name: 'Target Cluster',
             value: (
-              <Link routeName="ocm-cluster-detail" params={{ name: work.metadata.namespace }}>
+              <Link
+                routeName="ocm-cluster-detail"
+                params={{ name: work.metadata.namespace, cluster: work.cluster }}
+              >
                 {work.metadata.namespace}
               </Link>
             ),
@@ -135,29 +105,7 @@ export default function ManifestWorkDetail() {
         ]}
       />
 
-      <SectionBox title="Manifests">
-        <SimpleTable
-          data={work.manifests}
-          columns={[
-            {
-              label: 'Kind',
-              getter: (m: { kind: string }) => m.kind,
-            },
-            {
-              label: 'Name',
-              getter: (m: { metadata: { name: string } }) => m.metadata.name,
-            },
-            {
-              label: 'Namespace',
-              getter: (m: { metadata: { namespace?: string } }) => m.metadata.namespace || '-',
-            },
-            {
-              label: 'API Version',
-              getter: (m: { apiVersion: string }) => m.apiVersion,
-            },
-          ]}
-        />
-      </SectionBox>
+      <ManifestsSection owner={work} manifests={work.manifests} />
 
       {resourceStatuses.length > 0 && (
         <SectionBox title="Resource Status">
@@ -189,7 +137,7 @@ export default function ManifestWorkDetail() {
       )}
 
       <SectionBox title="Conditions">
-        <ConditionsTable resource={work} />
+        <ConditionsTable resource={work.jsonData} />
       </SectionBox>
     </>
   );

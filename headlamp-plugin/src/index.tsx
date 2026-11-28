@@ -3,20 +3,19 @@ import AddOnDetail from './addons/AddOnDetail';
 import AddOnList from './addons/AddOnList';
 import ClusterDetail from './clusters/ClusterDetail';
 import ClusterList from './clusters/ClusterList';
+import OCMPage from './common/OCMPage';
 import ManagedOverview from './managed/ManagedOverview';
 import ManifestWorkDetail from './manifestwork/ManifestWorkDetail';
 import ManifestWorkList from './manifestwork/ManifestWorkList';
+import ManifestWorkReplicaSetDetail from './manifestworkreplicaset/ManifestWorkReplicaSetDetail';
+import ManifestWorkReplicaSetList from './manifestworkreplicaset/ManifestWorkReplicaSetList';
 import Overview from './overview/Overview';
 import PlacementDetail from './placements/PlacementDetail';
 import PlacementList from './placements/PlacementList';
+import { registerOCMSidebar } from './sidebar';
 
-// Top-level OCM sidebar group
-registerSidebarEntry({
-  parent: null,
-  name: 'ocm',
-  label: 'OCM',
-  icon: 'vaadin:cluster',
-});
+// Top-level OCM sidebar group, which shows the pages for the selected cluster's role
+registerOCMSidebar();
 
 // Overview
 registerSidebarEntry({
@@ -31,7 +30,11 @@ registerRoute({
   sidebar: 'ocm-overview',
   name: 'ocm-overview',
   exact: true,
-  component: () => <Overview />,
+  component: () => (
+    <OCMPage clusterRole="hub" title="Fleet Overview">
+      <Overview />
+    </OCMPage>
+  ),
 });
 
 // Clusters
@@ -47,7 +50,11 @@ registerRoute({
   sidebar: 'ocm-clusters',
   name: 'ocm-clusters',
   exact: true,
-  component: () => <ClusterList />,
+  component: () => (
+    <OCMPage clusterRole="hub" title="Managed Clusters">
+      <ClusterList />
+    </OCMPage>
+  ),
 });
 
 registerRoute({
@@ -55,7 +62,11 @@ registerRoute({
   sidebar: 'ocm-clusters',
   name: 'ocm-cluster-detail',
   exact: true,
-  component: () => <ClusterDetail />,
+  component: () => (
+    <OCMPage clusterRole="hub" title="Managed Cluster">
+      <ClusterDetail />
+    </OCMPage>
+  ),
 });
 
 // Placements
@@ -71,7 +82,11 @@ registerRoute({
   sidebar: 'ocm-placements',
   name: 'ocm-placements',
   exact: true,
-  component: () => <PlacementList />,
+  component: () => (
+    <OCMPage clusterRole="hub" title="Placements">
+      <PlacementList />
+    </OCMPage>
+  ),
 });
 
 registerRoute({
@@ -79,7 +94,11 @@ registerRoute({
   sidebar: 'ocm-placements',
   name: 'ocm-placement-detail',
   exact: true,
-  component: () => <PlacementDetail />,
+  component: () => (
+    <OCMPage clusterRole="hub" title="Placement">
+      <PlacementDetail />
+    </OCMPage>
+  ),
 });
 
 // ManifestWork
@@ -95,7 +114,11 @@ registerRoute({
   sidebar: 'ocm-manifestwork',
   name: 'ocm-manifestwork',
   exact: true,
-  component: () => <ManifestWorkList />,
+  component: () => (
+    <OCMPage clusterRole="hub" title="ManifestWorks">
+      <ManifestWorkList />
+    </OCMPage>
+  ),
 });
 
 registerRoute({
@@ -103,7 +126,43 @@ registerRoute({
   sidebar: 'ocm-manifestwork',
   name: 'ocm-manifestwork-detail',
   exact: true,
-  component: () => <ManifestWorkDetail />,
+  component: () => (
+    <OCMPage clusterRole="hub" title="ManifestWork">
+      <ManifestWorkDetail />
+    </OCMPage>
+  ),
+});
+
+// ManifestWorkReplicaSets
+registerSidebarEntry({
+  parent: 'ocm',
+  name: 'ocm-manifestworkreplicasets',
+  label: 'ManifestWorkReplicaSets',
+  url: '/ocm/manifestworkreplicasets',
+});
+
+registerRoute({
+  path: '/ocm/manifestworkreplicasets',
+  sidebar: 'ocm-manifestworkreplicasets',
+  name: 'ocm-manifestworkreplicasets',
+  exact: true,
+  component: () => (
+    <OCMPage clusterRole="hub" title="ManifestWorkReplicaSets">
+      <ManifestWorkReplicaSetList />
+    </OCMPage>
+  ),
+});
+
+registerRoute({
+  path: '/ocm/manifestworkreplicasets/:namespace/:name',
+  sidebar: 'ocm-manifestworkreplicasets',
+  name: 'ocm-manifestworkreplicaset-detail',
+  exact: true,
+  component: () => (
+    <OCMPage clusterRole="hub" title="ManifestWorkReplicaSet">
+      <ManifestWorkReplicaSetDetail />
+    </OCMPage>
+  ),
 });
 
 // Add-ons
@@ -119,7 +178,11 @@ registerRoute({
   sidebar: 'ocm-addons',
   name: 'ocm-addons',
   exact: true,
-  component: () => <AddOnList />,
+  component: () => (
+    <OCMPage clusterRole="hub" title="Add-ons">
+      <AddOnList />
+    </OCMPage>
+  ),
 });
 
 registerRoute({
@@ -127,14 +190,18 @@ registerRoute({
   sidebar: 'ocm-addons',
   name: 'ocm-addon-detail',
   exact: true,
-  component: () => <AddOnDetail />,
+  component: () => (
+    <OCMPage clusterRole="hub" title="Add-on">
+      <AddOnDetail />
+    </OCMPage>
+  ),
 });
 
-// This Cluster (managed/spoke view)
+// The OCM agent on a managed cluster
 registerSidebarEntry({
   parent: 'ocm',
   name: 'ocm-managed',
-  label: 'This Cluster',
+  label: 'Agent',
   url: '/ocm/managed',
 });
 
@@ -143,5 +210,9 @@ registerRoute({
   sidebar: 'ocm-managed',
   name: 'ocm-managed',
   exact: true,
-  component: () => <ManagedOverview />,
+  component: () => (
+    <OCMPage clusterRole="managed" title="Agent">
+      <ManagedOverview />
+    </OCMPage>
+  ),
 });
